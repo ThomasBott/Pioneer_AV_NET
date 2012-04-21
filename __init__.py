@@ -20,14 +20,13 @@ import eg
 import socket
 import select
 import re
-import string
 from time import sleep
 from threading import Event, Thread
 
 eg.RegisterPlugin(
     name = "Pioneer_AV_NET",
     author = "Sem;colon (based on OnkyoISCP plugin by Alexander Hartmaier)",
-    version = "0.1",
+    version = "0.2",
     kind = "external",
     description = "Control Pioneer A/V Receivers via Ethernet (Tested with VSX-921-K)"
 )
@@ -54,7 +53,7 @@ class Pioneer_AV_NET(eg.PluginBase):
         self.Connect()
         self.stopThreadEvent = Event()
         thread = Thread(
-            target=self.Empfange,
+            target=self.Receive,
             args=(self.stopThreadEvent, )
         )
         thread.start()
@@ -62,90 +61,58 @@ class Pioneer_AV_NET(eg.PluginBase):
     def __stop__(self):
         self.stopThreadEvent.set()
     	self.socket.close()
-      
-    def Empfange(self, stopThreadEvent):
+
+    def Receive(self, stopThreadEvent):
         while not stopThreadEvent.isSet():
             try:
                 ready = select.select([self.socket], [], [])
+                # the first element of the returned list is a list of readable sockets
                 if ready[0]:
+                    # 1024 bytes should be enough for every received event
                     response = self.socket.recv(1024)
-                    responser=response
-                    while responser!="":
-                        if responser[:3]=="VOL":
-                            response1=responser[:3]
-                            response2=responser[3:6]
-                            self.TriggerEvent(response1, payload=response2)
-                            responser=responser[6:len(responser)]
-                        elif responser[:3]=="FRF":
-                            response1=responser[:3]
-                            response2=responser[3:8]
-                            self.TriggerEvent(response1, payload=response2)
-                            responser=responser[8:len(responser)]
-                        elif responser[:2]=="FL":
-                            #data displayed on the receiver
-                            response1=responser[:2]
-                            response2=responser[2:32]
-                            response3=""
-                            while response2!="":
-                                #converts hex to ascii
-                                bla=int(response2[:2], 16)
-                                if bla==5:
-                                    bla="|)"
-                                elif bla==6:
-                                    bla="(|"
-                                elif bla==8:
-                                    bla="II"
-                                else:
-                                    bla=chr(bla)
-                                response3=response3+bla
-                                response2=response2[2:len(response2)]
-                            response4=unicode(re.sub(" ", "&nbsp;", response3[1:]), 'latin-1', 'replace')
-                            #if response3[:1]=="\x00" or response3[:1]=="\x01" or response3[:1]=="\x02":
-                            #displays the data as an event with payload:
-                            #self.TriggerEvent(response1, payload=response4)
-                            #saves the data to the variale "AVDisplay": 
-                            eg.globals.AVDisplay=response4
-                            #else:
-                            #    print response3
-                            responser=responser[32:len(responser)]
-                        elif responser[:2]=="FN":
-                            response1=responser[:4]
-                            self.TriggerEvent(response1)
-                            responser=responser[4:len(responser)]
-                        elif responser[:3]=="VTA":
-                            response1=responser[:33]
-                            self.TriggerEvent(response1)
-                            responser=responser[33:len(responser)]
-                        elif responser[:3]=="SDA":
-                            response1=responser[:4]
-                            self.TriggerEvent(response1)
-                            responser=responser[4:len(responser)]
-                        elif responser[:2]=="MC":
-                            response1=responser[:3]
-                            self.TriggerEvent(response1)
-                            responser=responser[3:len(responser)]
-                        elif responser[:2]=="MUT":
-                            response1=responser[:4]
-                            self.TriggerEvent(response1)
-                            responser=responser[4:len(responser)]
-                        elif responser[:2]=="LM":
-                            response1=responser[:6]
-                            self.TriggerEvent(response1)
-                            responser=responser[6:len(responser)]
-                        elif responser[:3]=="PWR":
-                            response1=responser[:4]
-                            self.TriggerEvent(response1)
-                            responser=responser[4:len(responser)]
-                        elif len(responser)<=10:
-                            self.TriggerEvent(responser)
-                            responser=""
-                        elif "FL0" in responser:
-                            x=string.find(responser, "FL0")
-                            responser=responser[x:]
-                        else:
-                            print responser
-                            responser=""
-                        sleep(0.01)        
+                    # splits the received string in substrings for every event
+                    splitter="\r\n"
+                    responseArray=response.split(splitter)
+                    responseArrayLen=len(responseArray)-1
+                    for i in range(0, responseArrayLen, 1):
+                        response=responseArray[i]
+                        if response!="":
+                            if response[:3]=="VOL":
+                                response1=response[:3]
+                                response2=response[3:]
+                                self.TriggerEvent(response1, payload=response2)
+                            elif response[:3]=="FRF":
+                                response1=response[:3]
+                                response2=response[3:]
+                                self.TriggerEvent(response1, payload=response2)
+                            elif response[:2]=="FL":
+                                # data displayed on the receiver
+                                response1=response[:2]
+                                response2=response[2:]
+                                response3=""
+                                while response2!="":
+                                    # converts hex to ascii
+                                    character=int(response2[:2], 16)
+                                    if character==5:
+                                        character="|)"
+                                    elif character==6:
+                                        character="(|"
+                                    elif character==8:
+                                        character="II"
+                                    else:
+                                        character=chr(character)
+                                    response3=response3+character
+                                    response2=response2[2:len(response2)]
+                                response4=unicode(re.sub(" ", "&nbsp;", response3[1:]), 'latin-1', 'replace')
+                                #displays the data as an event with payload:
+                                #self.TriggerEvent(response1, payload=response4)
+                                #saves the data to the variale "AVDisplay": 
+                                eg.globals.AVDisplay=response4
+                            elif len(response)<=10:
+                                self.TriggerEvent(response)
+                            else:
+                                print response
+                            sleep(0.01)        
             except Exception as e:
                 print "Pioneer_AV_NET ERROR:",e
                 if "10054" in e:
@@ -168,9 +135,8 @@ class Pioneer_AV_NET(eg.PluginBase):
             print "Failed to connect to " + ip + ":" + str(port), e
         else:
             print "Connected to " + ip + ":" + str(port)
-        
 
-    def Configure(self, ip="192.168.0.95", port="8102", timeout="1"):
+    def Configure(self, ip="", port="8102", timeout="1"):
         text = self.text
         panel = eg.ConfigPanel()
         wx_ip = panel.TextCtrl(ip)
