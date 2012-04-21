@@ -68,30 +68,27 @@ class Pioneer_AV_NET(eg.PluginBase):
             try:
                 ready = select.select([self.socket], [], [])
                 if ready[0]:
-                    antwort = self.socket.recv(1024)
-                    #if len(antwort)<64:
-                    for i in range(0, 32, 1):
-                        antwort=antwort.replace(chr(i),"")
-                    antwortr=antwort
-                    while antwortr!="":
-                        if antwortr[:3]=="VOL":
-                            antwort1=antwortr[:3]
-                            antwort2=antwortr[3:6]
-                            self.TriggerEvent(antwort1, payload=antwort2)
-                            antwortr=antwortr[6:len(antwortr)]
-                        elif antwortr[:3]=="FRF":
-                            antwort1=antwortr[:3]
-                            antwort2=antwortr[3:8]
-                            self.TriggerEvent(antwort1, payload=antwort2)
-                            antwortr=antwortr[8:len(antwortr)]
-                        elif antwortr[:2]=="FL":
+                    response = self.socket.recv(1024)
+                    responser=response
+                    while responser!="":
+                        if responser[:3]=="VOL":
+                            response1=responser[:3]
+                            response2=responser[3:6]
+                            self.TriggerEvent(response1, payload=response2)
+                            responser=responser[6:len(responser)]
+                        elif responser[:3]=="FRF":
+                            response1=responser[:3]
+                            response2=responser[3:8]
+                            self.TriggerEvent(response1, payload=response2)
+                            responser=responser[8:len(responser)]
+                        elif responser[:2]=="FL":
                             #data displayed on the receiver
-                            antwort1=antwortr[:2]
-                            antwort2=antwortr[2:32]
-                            antwort3=""
-                            while antwort2!="":
+                            response1=responser[:2]
+                            response2=responser[2:32]
+                            response3=""
+                            while response2!="":
                                 #converts hex to ascii
-                                bla=int(antwort2[:2], 16)
+                                bla=int(response2[:2], 16)
                                 if bla==5:
                                     bla="|)"
                                 elif bla==6:
@@ -100,54 +97,54 @@ class Pioneer_AV_NET(eg.PluginBase):
                                     bla="II"
                                 else:
                                     bla=chr(bla)
-                                antwort3=antwort3+bla
-                                antwort2=antwort2[2:len(antwort2)]
-                            antwort4=unicode(re.sub(" ", "&nbsp;", antwort3[1:]), 'latin-1', 'replace')
-                            #if antwort3[:1]=="\x00" or antwort3[:1]=="\x01" or antwort3[:1]=="\x02":
+                                response3=response3+bla
+                                response2=response2[2:len(response2)]
+                            response4=unicode(re.sub(" ", "&nbsp;", response3[1:]), 'latin-1', 'replace')
+                            #if response3[:1]=="\x00" or response3[:1]=="\x01" or response3[:1]=="\x02":
                             #displays the data as an event with payload:
-                            #self.TriggerEvent(antwort1, payload=antwort4)
+                            #self.TriggerEvent(response1, payload=response4)
                             #saves the data to the variale "AVDisplay": 
-                            eg.globals.AVDisplay=antwort4
+                            eg.globals.AVDisplay=response4
                             #else:
-                            #    print antwort3
-                            antwortr=antwortr[32:len(antwortr)]
-                        elif antwortr[:2]=="FN":
-                            antwort1=antwortr[:4]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[4:len(antwortr)]
-                        elif antwortr[:3]=="VTA":
-                            antwort1=antwortr[:33]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[33:len(antwortr)]
-                        elif antwortr[:3]=="SDA":
-                            antwort1=antwortr[:4]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[4:len(antwortr)]
-                        elif antwortr[:2]=="MC":
-                            antwort1=antwortr[:3]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[3:len(antwortr)]
-                        elif antwortr[:2]=="MUT":
-                            antwort1=antwortr[:4]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[4:len(antwortr)]
-                        elif antwortr[:2]=="LM":
-                            antwort1=antwortr[:6]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[6:len(antwortr)]
-                        elif antwortr[:3]=="PWR":
-                            antwort1=antwortr[:4]
-                            self.TriggerEvent(antwort1)
-                            antwortr=antwortr[4:len(antwortr)]
-                        elif len(antwortr)<=10:
-                            self.TriggerEvent(antwortr)
-                            antwortr=""
-                        elif "FL0" in antwortr:
-                            x=string.find(antwortr, "FL0")
-                            antwortr=antwortr[x:]
+                            #    print response3
+                            responser=responser[32:len(responser)]
+                        elif responser[:2]=="FN":
+                            response1=responser[:4]
+                            self.TriggerEvent(response1)
+                            responser=responser[4:len(responser)]
+                        elif responser[:3]=="VTA":
+                            response1=responser[:33]
+                            self.TriggerEvent(response1)
+                            responser=responser[33:len(responser)]
+                        elif responser[:3]=="SDA":
+                            response1=responser[:4]
+                            self.TriggerEvent(response1)
+                            responser=responser[4:len(responser)]
+                        elif responser[:2]=="MC":
+                            response1=responser[:3]
+                            self.TriggerEvent(response1)
+                            responser=responser[3:len(responser)]
+                        elif responser[:2]=="MUT":
+                            response1=responser[:4]
+                            self.TriggerEvent(response1)
+                            responser=responser[4:len(responser)]
+                        elif responser[:2]=="LM":
+                            response1=responser[:6]
+                            self.TriggerEvent(response1)
+                            responser=responser[6:len(responser)]
+                        elif responser[:3]=="PWR":
+                            response1=responser[:4]
+                            self.TriggerEvent(response1)
+                            responser=responser[4:len(responser)]
+                        elif len(responser)<=10:
+                            self.TriggerEvent(responser)
+                            responser=""
+                        elif "FL0" in responser:
+                            x=string.find(responser, "FL0")
+                            responser=responser[x:]
                         else:
-                            print antwortr
-                            antwortr=""
+                            print responser
+                            responser=""
                         sleep(0.01)        
             except Exception as e:
                 print "Pioneer_AV_NET ERROR:",e
