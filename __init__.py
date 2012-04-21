@@ -170,7 +170,7 @@ class Pioneer_AV_NET(eg.PluginBase):
             print "Connected to " + ip + ":" + str(port)
         
 
-    def Configure(self, ip="192.168.0.95", port="8102", timeout="1"):
+    def Configure(self, ip="", port="8102", timeout="1"):
         text = self.text
         panel = eg.ConfigPanel()
         wx_ip = panel.TextCtrl(ip)
